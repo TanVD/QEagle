@@ -40,6 +40,7 @@ void VKAuth::slotUrlChanged(QUrl url)
         expiresString += urlString[i];
     expires = expiresString.toInt();
     this->hide();
+    emit done();
     loop.exit();
 }
 

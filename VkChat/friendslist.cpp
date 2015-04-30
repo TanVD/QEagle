@@ -1,7 +1,5 @@
 #include "friendslist.h"
-#include <QUrlQuery>
-#include <QNetworkReply>
-#include "jsonparser.h"
+
 
 FriendsList::FriendsList()
 {
@@ -19,6 +17,8 @@ QList<QPair<QString, QString>> FriendsList::getFriends(QString token)
     QStringList ids = JSONParser::parseListIds(reply);
     QStringList names = nameFriends(ids);
     QList<QPair<QString, QString>> result;
+    if (names.length() == 0 || ids.length() == 0)
+        return result;
     //Гарантированно ли возвращение в том же порядке?
     for (int i = 0; i < ids.length(); i++)
     {

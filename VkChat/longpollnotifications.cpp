@@ -18,22 +18,35 @@ void LongPollNotifications::passQueryToServer()
     accAPI.get(QNetworkRequest(url));
 }
 
-
+//ПЛОДЯТСЯ ПОТОКИ
 void LongPollNotifications::finishedSlot(QNetworkReply *replyOnPost)
 {
     if (replyOnPost->error() == QNetworkReply::NoError)
     {
         QByteArray bytes = replyOnPost->readAll();
+        delete replyOnPost;
         QString string(bytes);
         reply = string;
         QString newTs = reply.mid(reply.indexOf(":") + 1, reply.indexOf(",") - reply.indexOf(":") - 1);
         ts = newTs;
         if (reply.contains("[4,"))
         {
-            QStringList newList = JSONParser::parseLongPollAnswer(reply);
-            emit getNewMessages(newList);
-            return;
+            QStringList newList = JSONParser::parseLongPollAnswerMsg(reply);
+            if (newList.length() != 0)
+                emit getNewMessages(newList);
         }
+        if (reply.contains("[61,"))
+        {
+            QStringList newList = JSONParser::parseLongPollAnswerWriting(reply);
+            emit somebodyIsWriting(newList);
+        }
+        else
+        {
+            emit nobodyIsWriting();
+        }
+        if (reply.contains("[7,"))
+            emit someMessagesWereRead();
+        return;
     }
     else
     {

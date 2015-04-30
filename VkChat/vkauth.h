@@ -14,6 +14,8 @@ public:
     int getExpiration();
 private slots:
     void slotUrlChanged(QUrl url);
+signals:
+    void done();
 private:
     QString token;
     int expires;

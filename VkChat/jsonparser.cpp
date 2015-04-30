@@ -96,15 +96,36 @@ QStringList JSONParser::parseLongPollAuth(QString url)
     return newList;
 }
 
-QStringList JSONParser::parseLongPollAnswer(QString answer)
+QStringList JSONParser::parseLongPollAnswerMsg(QString answer)
 {
     QStringList ansList;
     while (answer.contains("[4,"))
     {
-        int posBegin = answer.indexOf("[4");
-        int posEnd = answer.indexOf("]", answer.indexOf("[4"));
+        int posBegin = answer.indexOf("[4,");
+        int posEnd = answer.indexOf("]", answer.indexOf("[4,"));
         QStringList newList = answer.mid(posBegin, posEnd - posBegin).split(",");
         QString msg = newList[3];
+        int flag = newList[2].toInt();
+        if (flag % 4 == 3 || flag % 4 == 2)
+        {
+            answer.remove(posBegin - 1, posEnd - posBegin + 1);
+            continue;
+        }
+        ansList.append(msg);
+        answer.remove(posBegin - 1, posEnd - posBegin + 1);
+    }
+    return ansList;
+}
+
+QStringList JSONParser::parseLongPollAnswerWriting(QString answer)
+{
+    QStringList ansList;
+    while (answer.contains("[61,"))
+    {
+        int posBegin = answer.indexOf("[61,");
+        int posEnd = answer.indexOf("]", answer.indexOf("[61,"));
+        QStringList newList = answer.mid(posBegin, posEnd - posBegin).split(",");
+        QString msg = newList[1];
         ansList.append(msg);
         answer.remove(posBegin - 1, posEnd - posBegin + 1);
     }

@@ -9,6 +9,7 @@ public:
     static QStringList parseListNames(QString list);
     static QStringList parseHistory(QStringList dialog, QString person);
     static QStringList parseLongPollAuth(QString url);
-    static QStringList parseLongPollAnswer(QString answer);
+    static QStringList parseLongPollAnswerMsg(QString answer);
+    static QStringList parseLongPollAnswerWriting(QString answer);
 };
 

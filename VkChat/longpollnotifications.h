@@ -21,6 +21,9 @@ public slots:
     void finishedSlot(QNetworkReply *replyOnPost);
 signals:
     void getNewMessages(QStringList);
+    void somebodyIsWriting(QStringList);
+    void nobodyIsWriting();
+    void someMessagesWereRead();
 private:
     QString key;
     QString server;
