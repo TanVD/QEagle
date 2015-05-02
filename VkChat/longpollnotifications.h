@@ -1,5 +1,4 @@
 #pragma once
-#include <QtNetwork/QNetworkAccessManager>
 #include <QUrl>
 #include <QNetworkRequest>
 #include <QNetworkReply>
@@ -7,20 +6,19 @@
 #include <QString>
 #include <QStringList>
 #include <QObject>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QCoreApplication>
+#include "jsonparser.h"
 
 class LongPollNotifications : public QObject
 {
     Q_OBJECT
 public:
-    LongPollNotifications(QStringList params);
+    LongPollNotifications(const QStringList &params);
 
 public slots:
     void passQueryToServer();
     void finishedSlot(QNetworkReply *replyOnPost);
 signals:
-    void getNewMessages(QStringList);
+    void newMessagesAdded(QStringList);
     void somebodyIsWriting(QStringList);
     void nobodyIsWriting();
     void someMessagesWereRead();

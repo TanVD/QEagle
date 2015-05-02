@@ -12,9 +12,7 @@
 #include "vkauth.h"
 #include "friendslist.h"
 #include "gethistory.h"
-#include "longpollserverauth.h"
 #include "sendmessage.h"
-#include "longpollnotifications.h"
 
 
 namespace Ui {
@@ -30,42 +28,48 @@ public:
     ~ChatMain();
 
 signals:
-    void operate();
+    void startLongPoll();
 
 private slots:
     void onContactListIndexChanged(int arg1);
 
     void onSendButtonClicked();
 
-    void newMessages(QStringList listNew);
+    void onNewMessageAdded(const QStringList &listNew);
 
-    void onAuthDone();
+    void onAuthVKDone();
 
-    void newPersonWriting(QStringList list);
+    void onNewPersonWriting(const QStringList &list);
 
-    void nobodyWriting();
+    void onNobodyWriting();
 
-    void updateHistoryBySignal();
+    void onHistoryUpdated();
 
 private:
     void updateFriendsList();
+
     void updateHistoryText(int arg1);
+
+    void updateLabelBuddyWriting();
+
     QList<int> syncToNewContactList(QList<int> oldListSmth, QList<QPair<QString, QString> > oldContactList);
 
     QList<QPair<QString, QString>> listOfContacts;
 
-    LongPollNotifications* serv;
-    int numberOfNewMessages;
-    QList<int> unreadMessages;
+    LongPollNotifications* longPollServer;
 
-    QList<int> writingPeople;
-    void setLabel();
+    int numberOfNewMessages;
+
+    QList<int> unreadMessagesList;
+
+    QList<int> writingPeopleList;
 
     Ui::ChatMain *ui;
 
-    VKAuth* aut;
-    LongPollServerAuth* autServ;
+    VKAuth* vkAuthentication;
 
-    QThread* notifyThread;
+    LongPollServerAuth* longPollAuthentication;
+
+    QThread* longPollServerThread;
 };
 

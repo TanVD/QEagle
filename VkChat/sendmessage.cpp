@@ -1,21 +1,16 @@
 #include "sendmessage.h"
-#include <QUrlQuery>
-#include <QNetworkReply>
-#include "jsonparser.h"
 
 SendMessage::SendMessage()
 {
     connect(&accAPI, SIGNAL(finished(QNetworkReply*)), this, SLOT(finishedSlot(QNetworkReply*)));
 }
 
-QString SendMessage::sendMessage(QString token, QString person, QString message)
+QString SendMessage::sendMessage(const QString &token, const QString &person, const QString &message)
 {
     this->token = token;
-    QString url("https://api.vk.com/method/messages.send?");
-    url += "user_id=" + person;
-    url += "&message=" + message;
-    url += "&access_token=" + token;
+    QString url("https://api.vk.com/method/messages.send?user_id=" + person + "&message=" + message + "&access_token=" + token);
     accAPI.get(QNetworkRequest(url));
+
     loop.exec();
     return reply;
 }

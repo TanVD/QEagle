@@ -1,7 +1,8 @@
 #include "jsonparser.h"
 
-QStringList JSONParser::parseListIds(QString list)
+QStringList JSONParser::parseListIds(const QString &listGet)
 {
+    QString list = listGet;
     QStringList newList;
     while(list.indexOf("[") != -1)
     {
@@ -20,8 +21,9 @@ QStringList JSONParser::parseListIds(QString list)
     return newList;
 }
 
-QStringList JSONParser::parseListNames(QString list)
+QStringList JSONParser::parseListNames(const QString &listGet)
 {
+    QString list = listGet;
     QStringList newList;
     int i = 0;
     while(list.indexOf("first_name\":\"") != -1 || list.indexOf("last_name\":\"") != -1)
@@ -43,8 +45,10 @@ QStringList JSONParser::parseListNames(QString list)
     return newList;
 }
 
-QStringList JSONParser::parseHistory(QStringList dialog, QString person)
+QStringList JSONParser::parseHistory(const QStringList &dialogGet, const QString &personGet)
 {
+    QStringList dialog = dialogGet;
+    QString person = personGet;
     QStringList newList;
     for (int i = 0; i < dialog.length(); i++)
     {
@@ -81,8 +85,9 @@ QStringList JSONParser::parseHistory(QStringList dialog, QString person)
     return newList;
 }
 
-QStringList JSONParser::parseLongPollAuth(QString url)
+QStringList JSONParser::parseLongPollAuth(const QString &urlGet)
 {
+    QString url = urlGet;
     QStringList newList;
     int pos = url.indexOf("key\":\"");
     newList.append(url.mid(pos + 6, url.indexOf("\"", pos + 6) - pos - 6));
@@ -96,8 +101,9 @@ QStringList JSONParser::parseLongPollAuth(QString url)
     return newList;
 }
 
-QStringList JSONParser::parseLongPollAnswerMsg(QString answer)
+QStringList JSONParser::parseLongPollAnswerMsg(const QString &answerGet)
 {
+    QString answer = answerGet;
     QStringList ansList;
     while (answer.contains("[4,"))
     {
@@ -117,8 +123,9 @@ QStringList JSONParser::parseLongPollAnswerMsg(QString answer)
     return ansList;
 }
 
-QStringList JSONParser::parseLongPollAnswerWriting(QString answer)
+QStringList JSONParser::parseLongPollAnswerWriting(const QString &answerGet)
 {
+    QString answer = answerGet;
     QStringList ansList;
     while (answer.contains("[61,"))
     {

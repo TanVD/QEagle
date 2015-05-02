@@ -9,13 +9,13 @@ class VKAuth : public QWebView
 {
     Q_OBJECT
 public:
-    VKAuth(QString appid, QWidget* parent);
+    VKAuth(const QString &appid, QWidget* parent);
     QString getToken();
     int getExpiration();
 private slots:
     void slotUrlChanged(QUrl url);
 signals:
-    void done();
+    void doneAuthenticationOfVK();
 private:
     QString token;
     int expires;

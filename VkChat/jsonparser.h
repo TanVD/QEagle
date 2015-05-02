@@ -5,11 +5,11 @@
 class JSONParser
 {
 public:
-    static QStringList parseListIds(QString list);
-    static QStringList parseListNames(QString list);
-    static QStringList parseHistory(QStringList dialog, QString person);
-    static QStringList parseLongPollAuth(QString url);
-    static QStringList parseLongPollAnswerMsg(QString answer);
-    static QStringList parseLongPollAnswerWriting(QString answer);
+    static QStringList parseListIds(const QString &list);
+    static QStringList parseListNames(const QString &list);
+    static QStringList parseHistory(const QStringList &dialog, const QString &person);
+    static QStringList parseLongPollAuth(const QString &url);
+    static QStringList parseLongPollAnswerMsg(const QString &answer);
+    static QStringList parseLongPollAnswerWriting(const QString &answer);
 };
 

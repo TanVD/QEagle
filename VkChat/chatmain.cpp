@@ -5,21 +5,21 @@ ChatMain::ChatMain(QWidget *parent) :
     ui(new Ui::ChatMain)
 {
     ui->setupUi(this);
-    aut = new VKAuth("4892953", this);
-    autServ = nullptr;
+    vkAuthentication = new VKAuth("4892953", this);
+    longPollAuthentication = nullptr;
     numberOfNewMessages = 0;
-    connect(aut, SIGNAL(done()), this, SLOT(onAuthDone()));
+    connect(vkAuthentication, SIGNAL(doneAuthenticationOfVK()), this, SLOT(onAuthVKDone()));
     connect(ui->sendButton, SIGNAL(clicked()), this, SLOT(onSendButtonClicked()));
     connect(ui->contactList, SIGNAL(currentIndexChanged(int)), this, SLOT(onContactListIndexChanged(int)));
 }
 
 ChatMain::~ChatMain()
 {
-    notifyThread->quit();
+    longPollServerThread->quit();
     delete ui;
 }
 
-void ChatMain::newMessages(QStringList listNew)
+void ChatMain::onNewMessageAdded(const QStringList &listNew)
 {
     QMutex mutex;
     mutex.lock();
@@ -37,9 +37,9 @@ void ChatMain::newMessages(QStringList listNew)
         }
         if (index != -1)
         {
-            if (unreadMessages[index] == 0)
+            if (unreadMessagesList[index] == 0)
                 ui->contactList->setItemText(index, "⇒ " + listOfContacts[index].second);
-            unreadMessages[index]++;
+            unreadMessagesList[index]++;
             numberOfNewMessages++;
         }
     }
@@ -47,35 +47,35 @@ void ChatMain::newMessages(QStringList listNew)
     ui->NewMessageLabel->setText("New message " + QString::number(numberOfNewMessages));
     //ПОЧЕМУ ЗДЕСЬ UI->contactList->CURRRENTINDEX == -1??
     mutex.unlock();
-    operate();
+    startLongPoll();
 }
 
-void ChatMain::onAuthDone()
+void ChatMain::onAuthVKDone()
 {
     ui->HistoryBox->verticalScrollBar()->setTracking(true);
 
-    if (autServ != nullptr)
-        delete autServ;
-    autServ = new LongPollServerAuth(aut->getToken());
-    serv = new LongPollNotifications(autServ->getAuth());
+    if (longPollAuthentication != nullptr)
+        delete longPollAuthentication;
+    longPollAuthentication = new LongPollServerAuth(vkAuthentication->getToken());
+    longPollServer = new LongPollNotifications(longPollAuthentication->getAuthentication());
 
-    notifyThread = new QThread();
-    serv->moveToThread(notifyThread);
-    connect(notifyThread, &QThread::finished, serv, &QObject::deleteLater);
-    connect(serv, SIGNAL(getNewMessages(QStringList)), this, SLOT(newMessages(QStringList)));
-    connect(serv, SIGNAL(somebodyIsWriting(QStringList)), this, SLOT(newPersonWriting(QStringList)));
-    connect(serv, SIGNAL(nobodyIsWriting()), this, SLOT(nobodyWriting()));
-    connect(serv, SIGNAL(someMessagesWereRead()), this, SLOT(updateHistoryBySignal()));
+    longPollServerThread = new QThread();
+    longPollServer->moveToThread(longPollServerThread);
+    connect(longPollServerThread, &QThread::finished, longPollServer, &QObject::deleteLater);
+    connect(longPollServer, SIGNAL(newMessagesAdded(QStringList)), this, SLOT(onNewMessageAdded(QStringList)));
+    connect(longPollServer, SIGNAL(somebodyIsWriting(QStringList)), this, SLOT(onNewPersonWriting(QStringList)));
+    connect(longPollServer, SIGNAL(nobodyIsWriting()), this, SLOT(onNobodyWriting()));
+    connect(longPollServer, SIGNAL(someMessagesWereRead()), this, SLOT(onHistoryUpdated()));
 
-    connect(this, SIGNAL(operate()), serv, SLOT(passQueryToServer()));
-    notifyThread->start();
-    operate();
+    connect(this, SIGNAL(startLongPoll()), longPollServer, SLOT(passQueryToServer()));
+    longPollServerThread->start();
+    startLongPoll();
 
     updateFriendsList();
     ui->HistoryBox->verticalScrollBar()->setValue(ui->HistoryBox->verticalScrollBar()->maximum());
 }
 
-void ChatMain::newPersonWriting(QStringList list)
+void ChatMain::onNewPersonWriting(const QStringList &list)
 {
     updateFriendsList();
     for (int j = 0; j < list.length(); j++)
@@ -84,30 +84,30 @@ void ChatMain::newPersonWriting(QStringList list)
         {
             if (list[j] == listOfContacts[i].first)
             {
-                writingPeople[i] = 1;
+                writingPeopleList[i] = 1;
                 break;
             }
         }
     }
-    setLabel();
-    operate();
+    updateLabelBuddyWriting();
+    startLongPoll();
 }
 
-void ChatMain::nobodyWriting()
+void ChatMain::onNobodyWriting()
 {
     updateFriendsList();
-    for (int i = 0; i < writingPeople.length(); i++)
+    for (int i = 0; i < writingPeopleList.length(); i++)
     {
-        writingPeople[i] = 0;
+        writingPeopleList[i] = 0;
     }
-    setLabel();
-    operate();
+    updateLabelBuddyWriting();
+    startLongPoll();
 }
 
-void ChatMain::updateHistoryBySignal()
+void ChatMain::onHistoryUpdated()
 {
     updateHistoryText(ui->contactList->currentIndex());
-    operate();
+    startLongPoll();
 }
 
 void ChatMain::updateFriendsList()
@@ -118,7 +118,7 @@ void ChatMain::updateFriendsList()
 
     FriendsList* list = new FriendsList();
 
-    QList<QPair<QString, QString>> newList = list->getFriends(aut->getToken());
+    QList<QPair<QString, QString>> newList = list->getFriends(vkAuthentication->getToken());
     if (newList.length() == 0)
         return;
     QList<QPair<QString, QString>> oldContactList = listOfContacts;
@@ -137,8 +137,8 @@ void ChatMain::updateFriendsList()
         }
     }
 
-    unreadMessages = syncToNewContactList(unreadMessages, oldContactList);
-    writingPeople = syncToNewContactList(writingPeople, oldContactList);
+    unreadMessagesList = syncToNewContactList(unreadMessagesList, oldContactList);
+    writingPeopleList = syncToNewContactList(writingPeopleList, oldContactList);
 
     ui->contactList->blockSignals(true);
     ui->contactList->clear();
@@ -151,13 +151,14 @@ void ChatMain::updateFriendsList()
 
     for (int i = 0; i < listOfContacts.length(); i++)
     {
-        if (unreadMessages[i] > 0)
+        if (unreadMessagesList[i] > 0)
             ui->contactList->setItemText(i, "⇒ " + listOfContacts[i].second);
     }
 
     updateHistoryText(indexToLookPerson);
 }
 
+//Медленно
 void ChatMain::updateHistoryText(int arg1)
 {
     //HOT FIX for vertical slider fixing. Think about normal solution.
@@ -166,7 +167,7 @@ void ChatMain::updateHistoryText(int arg1)
     double percent = valueOfScroll / max;
 
     GetHistory hist;
-    QStringList historyList = hist.getHistory(aut->getToken(), listOfContacts[arg1].first);
+    QStringList historyList = hist.getHistory(vkAuthentication->getToken(), listOfContacts[arg1].first);
     QString historyTextBox;
     for (int i  = historyList.length() - 1; i >= 0; i--)
     {
@@ -176,8 +177,8 @@ void ChatMain::updateHistoryText(int arg1)
 
     ui->HistoryBox->verticalScrollBar()->setValue((int) (ui->HistoryBox->verticalScrollBar()->maximum() * percent));
 
-    numberOfNewMessages -= unreadMessages[ui->contactList->currentIndex()];
-    unreadMessages[ui->contactList->currentIndex()] = 0;
+    numberOfNewMessages -= unreadMessagesList[ui->contactList->currentIndex()];
+    unreadMessagesList[ui->contactList->currentIndex()] = 0;
     ui->NewMessageLabel->setText("New message " + QString::number(numberOfNewMessages));
     ui->contactList->setItemText(ui->contactList->currentIndex(), listOfContacts[arg1].second);
 }
@@ -200,9 +201,9 @@ QList<int> ChatMain::syncToNewContactList(QList<int> oldListSmth, QList<QPair<QS
     return newList;
 }
 
-void ChatMain::setLabel()
+void ChatMain::updateLabelBuddyWriting()
 {
-    if (writingPeople[ui->contactList->currentIndex() != 0])
+    if (writingPeopleList[ui->contactList->currentIndex() != 0])
     {
         ui->SomebodyIsWriting->setText("Собеседник пишет вам...");
     }
@@ -224,7 +225,7 @@ void ChatMain::onSendButtonClicked()
     if (msgToUser != "" && ui->contactList->currentIndex() != -1)
     {
         SendMessage msg;
-        msg.sendMessage(aut->getToken(), listOfContacts[ui->contactList->currentIndex()].first, ui->sendField->toPlainText());
+        msg.sendMessage(vkAuthentication->getToken(), listOfContacts[ui->contactList->currentIndex()].first, ui->sendField->toPlainText());
         updateHistoryText(ui->contactList->currentIndex());
         ui->sendField->setText("");
     }

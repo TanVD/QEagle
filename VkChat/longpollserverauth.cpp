@@ -1,15 +1,13 @@
 #include "longpollserverauth.h"
-#include <QUrlQuery>
-#include <QNetworkReply>
-#include "jsonparser.h"
 
-LongPollServerAuth::LongPollServerAuth(QString token)
+LongPollServerAuth::LongPollServerAuth(const QString &token)
 {
      connect(&accAPI, SIGNAL(finished(QNetworkReply*)), this, SLOT(finishedSlot(QNetworkReply*)));
-     QString url("https://api.vk.com/method/messages.getLongPollServer?");
-     url += "access_token=" + token;
+     QString url("https://api.vk.com/method/messages.getLongPollServer?access_token=" + token);
+
      accAPI.get(QNetworkRequest(url));
      loop.exec();
+
      authList = JSONParser::parseLongPollAuth(reply);
 }
 
@@ -29,7 +27,7 @@ void LongPollServerAuth::finishedSlot(QNetworkReply *replyOnPost)
     loop.exit();
 }
 
-QStringList LongPollServerAuth::getAuth()
+QStringList LongPollServerAuth::getAuthentication()
 {
     return authList;
 }
